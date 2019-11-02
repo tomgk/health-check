@@ -5,6 +5,7 @@
  */
 package org.exolin.health.servlets.html;
 
+import org.exolin.health.servlets.LinkBuilder;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -19,15 +20,17 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.text.StringEscapeUtils;
 import org.exolin.health.servlets.HealthComponent;
 import org.exolin.health.servlets.Value;
+import org.exolin.health.servlets.Visualizer;
 
 /**
  * 
  * 
  * @author tomgk
  */
-public class HealthHTML
+public class HealthHTML implements Visualizer
 {
-    public static void write(HealthComponent root, HttpServletRequest request, HttpServletResponse response) throws IOException
+    @Override
+    public void writeNotFound(String url, String type, String name, HttpServletRequest request, HttpServletResponse response) throws IOException
     {
         try(PrintWriter out = response.getWriter())
         {
@@ -41,7 +44,47 @@ public class HealthHTML
             out.println("</head>");
             out.println("<body>");
             out.println("<div class=\"container\">");
-            out.println("<h1>Status</h1>");
+            out.println("<h1>Not found</h1>");
+            out.println("<p>The specific service was not found</p>");
+            out.println("</div>");
+            out.println("</body>");
+            out.println("</html>");
+        }
+    }
+    
+    private void writeTitle(PrintWriter out, HealthComponent component)
+    {
+        out.print("Status");
+
+        if(component.getType() != null)
+            out.print(" "+component.getType());
+        if(component.getName()!= null)
+            out.print(" "+component.getName());
+    }
+    
+    @Override
+    public void write(String url, HealthComponent component, HttpServletRequest request, HttpServletResponse response) throws IOException
+    {
+        try(PrintWriter out = response.getWriter())
+        {
+            response.setContentType("text/html;charset=UTF-8");
+        
+            out.println("<!DOCTYPE html>");
+            out.println("<html>");
+            out.println("<head>");
+            out.println("<link rel=\"stylesheet\" href=\"https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css\" integrity=\"sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T\" crossorigin=\"anonymous\">");
+            
+            out.print("<title>");
+            writeTitle(out, component);
+            out.println("</title>");
+            
+            out.println("</head>");
+            out.println("<body>");
+            out.println("<div class=\"container\">");
+            
+            out.print("<h1>");
+            writeTitle(out, component);
+            out.println("</h1>");
             
             out.write("<table class=\"table\">");
 
@@ -49,10 +92,12 @@ public class HealthHTML
 
             out.write("</table>");
             
-            writeEntity(out, root);
+            LinkBuilder linkBuilder = new LinkBuilder(url, false);
+            
+            writeEntity(linkBuilder, out, component);
             
             List<HealthComponentWithParent> components = new ArrayList<>();
-            addSubs(root, components);
+            addSubs(component, components);
             
             Map<String, List<HealthComponentWithParent>> byType = components.stream().collect(Collectors.groupingBy(c -> c.getComponent().getType(), Collectors.toList()));
             
@@ -60,8 +105,21 @@ public class HealthHTML
             {
                 if(entry.getValue().size() == 1)
                 {
-                    out.print("<h2>"+entry.getKey()+"</h2>");
-                    writeEntity(out, entry.getValue().get(0).getComponent());
+                    String name = entry.getValue().get(0).getComponent().getName();
+                    
+                    out.print("<h2>");
+                    
+                    if(name != null)
+                        out.print("<a href=\""+linkBuilder.link(component.getType(), name)+"\">");
+                    
+                    out.print(entry.getKey());
+                    
+                    if(name != null)
+                        out.print("</a>");
+                    
+                    out.print("</h2>");
+                    
+                    writeEntity(linkBuilder, out, entry.getValue().get(0).getComponent());
                 }
                 else
                 {
@@ -72,7 +130,7 @@ public class HealthHTML
                     if(parents.size() == 1)
                         out.print("<p>From "+ref(parents.iterator().next())+"</p>");
                     
-                    writeList(out, parents.size() != 1, entry.getValue());
+                    writeList(linkBuilder, out, parents.size() != 1, entry.getValue());
                 }
             }
             
@@ -88,12 +146,23 @@ public class HealthHTML
             out.println("<tr><td>"+name+"</td><td>"+value+"</td></tr>");
     }
     
-    private static void writeEntity(PrintWriter out, HealthComponent component)
+    private static void writeEntity(LinkBuilder linkBuilder, PrintWriter out, HealthComponent component)
     {
         out.println("<table class=\"table\">");
 
         writeRow(out, "Type", component.getType());
-        writeRow(out, "Name", component.getName());
+        
+        {
+            String name = component.getName();
+            if(name != null)
+            {
+                out.println("<tr>");
+                out.println("<td><a href=\""+linkBuilder.link(component.getType(), name)+"\">Name</a></td>");
+                out.println("<td>"+name+"</td>");
+                out.println("</tr>");
+            }
+        }
+        
         writeRow(out, "Version", component.getVersion());
         writeRow(out, "Sub-Type", component.getSubType());
         
@@ -115,7 +184,7 @@ public class HealthHTML
         out.println("</table>");
     }
 
-    protected static void writeList(PrintWriter out, boolean withParent, List<HealthComponentWithParent> components) throws IOException
+    protected static void writeList(LinkBuilder linkBuilder, PrintWriter out, boolean withParent, List<HealthComponentWithParent> components) throws IOException
     {
         boolean containsLocalName = components.stream().anyMatch(e -> e.getComponent().getName() != null);
         boolean containsLocalVersion = components.stream().anyMatch(e -> e.getComponent().getVersion() != null);
@@ -158,7 +227,21 @@ public class HealthHTML
                 out.print("<td>"+ref(subw.getParent())+"</td>");
             
             if(containsLocalName)
-                out.print("<td>"+sub.getName()+"</td>");
+            {
+                String name = sub.getName();
+                
+                out.print("<td>");
+                
+                if(name != null)
+                    out.print("<a href=\""+linkBuilder.link(sub.getType(), name)+"\">");
+                
+                out.print(sub.getName());
+                
+                if(name != null)
+                    out.print("</a>");
+                
+                out.print("</td>");
+            }
             
             if(containsLocalVersion)
                 out.print("<td>"+sub.getVersion()+"</td>");

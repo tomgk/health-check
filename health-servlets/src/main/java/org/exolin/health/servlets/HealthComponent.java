@@ -22,7 +22,7 @@ public interface HealthComponent
     String getType();
 
     /**
-     * @return der Name (sollte mit {@link #getType()} 
+     * @return der Name (sollte mit {@link #getType()} eindeutig sein)
      */
     default public String getName()
     {

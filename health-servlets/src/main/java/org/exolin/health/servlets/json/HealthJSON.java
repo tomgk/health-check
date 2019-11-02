@@ -9,15 +9,18 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.Writer;
+import java.util.Collections;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.exolin.health.servlets.HealthComponent;
+import org.exolin.health.servlets.LinkBuilder;
+import org.exolin.health.servlets.Visualizer;
 
 /**
  *
  * @author tomgk
  */
-public class HealthJSON
+public class HealthJSON implements Visualizer
 {
     private static final ObjectMapper mapper = new ObjectMapper();
     static
@@ -25,15 +28,26 @@ public class HealthJSON
         mapper.setSerializationInclusion(Include.NON_NULL);
     }
     
-    public static void write(HealthComponent root, HttpServletRequest request, HttpServletResponse response) throws IOException
+    @Override
+    public void write(String url, HealthComponent component, HttpServletRequest request, HttpServletResponse response) throws IOException
     {
         response.setContentType("application/json;charset=UTF-8");
         
-        write(response.getWriter(), root);
+        write(url, response.getWriter(), component);
     }
     
-    static void write(Writer out, HealthComponent root) throws IOException
+    static void write(String url, Writer out, HealthComponent component) throws IOException
     {
-        mapper.writeValue(out, new HealthComponentWrapper(root));
+        LinkBuilder linkBuilder = new LinkBuilder(url, true);
+        mapper.writeValue(out, new HealthComponentWrapper(component, linkBuilder));
+    }
+
+    @Override
+    public void writeNotFound(String url, String type, String name, HttpServletRequest request, HttpServletResponse response) throws IOException
+    {
+        response.setContentType("application/json;charset=UTF-8");
+        response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+        
+        mapper.writeValue(response.getWriter(), Collections.singletonMap("error", "not found: service[type="+type+", name="+name+"]"));
     }
 }

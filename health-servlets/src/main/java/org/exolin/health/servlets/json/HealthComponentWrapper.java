@@ -9,8 +9,10 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import java.util.AbstractMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import org.exolin.health.servlets.HealthComponent;
+import org.exolin.health.servlets.LinkBuilder;
 import org.exolin.health.servlets.Value;
 
 /**
@@ -19,9 +21,10 @@ import org.exolin.health.servlets.Value;
  */
 @JsonPropertyOrder({
     "type",
-    "localName",
-    "localVersion",
-    "localType",
+    "name",
+    "version",
+    "subType",
+    "url",
     "status",
     "properties",
     "startTime",
@@ -32,10 +35,23 @@ import org.exolin.health.servlets.Value;
 public class HealthComponentWrapper
 {
     private final HealthComponent component;
+    private final LinkBuilder linkBuilder;
 
-    public HealthComponentWrapper(HealthComponent component)
+    public HealthComponentWrapper(HealthComponent component, LinkBuilder linkBuilder)
     {
-        this.component = component;
+        this.component = Objects.requireNonNull(component, "component");
+        this.linkBuilder = Objects.requireNonNull(linkBuilder, "linkBuilder");
+    }
+    
+    public String getUrl()
+    {
+        String name = getName();
+        if(name == null)
+            return null;
+        
+        String type = getType();
+        
+        return linkBuilder.link(type, name);
     }
 
     public String getType()
@@ -43,17 +59,17 @@ public class HealthComponentWrapper
         return component.getType();
     }
 
-    public String getLocalName()
+    public String getName()
     {
         return component.getName();
     }
 
-    public String getLocalVersion()
+    public String getVersion()
     {
         return component.getVersion();
     }
 
-    public String getLocalType()
+    public String getSubType()
     {
         return component.getSubType();
     }
@@ -86,7 +102,7 @@ public class HealthComponentWrapper
         if(subComponents.isEmpty())
             return null;
 
-        return subComponents.stream().map(HealthComponentWrapper::new).collect(Collectors.toList());
+        return subComponents.stream().map(sub -> new HealthComponentWrapper(sub, linkBuilder)).collect(Collectors.toList());
     }
 
     public Map<String, ValueWrapper> getProperties()

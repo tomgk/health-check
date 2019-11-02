@@ -21,6 +21,8 @@ import org.junit.Test;
  */
 public class HealthJSONTest
 {
+    private static final String URL = "http://exolin.test/status";
+    
     static class HealthComponentRoot implements HealthComponent
     {
         @Override
@@ -34,7 +36,7 @@ public class HealthJSONTest
     public void testWriteMinimal() throws Exception
     {
         StringWriter out = new StringWriter();
-        HealthJSON.write(out, new HealthComponentRoot());
+        HealthJSON.write(URL, out, new HealthComponentRoot());
         
         assertEquals("{\"type\":\"root\"}", out.toString());
     }
@@ -92,14 +94,7 @@ public class HealthJSONTest
         @Override
         public List<HealthComponent> getSubComponents()
         {
-            return Arrays.asList(new HealthComponent()
-            {
-                @Override
-                public String getType()
-                {
-                    return "sub-thingy";
-                }
-            });
+            return Arrays.asList(() -> "sub-thingy");
         }
 
         @Override
@@ -113,13 +108,14 @@ public class HealthJSONTest
     public void testWriteAll() throws Exception
     {
         StringWriter out = new StringWriter();
-        HealthJSON.write(out, new HealthComponentRoot2());
+        HealthJSON.write(URL, out, new HealthComponentRoot2());
         
         assertEquals("{"
                 + "\"type\":\"root\","
-                + "\"localName\":\"a name\","
-                + "\"localVersion\":\"3.2\","
-                + "\"localType\":\"rooty\","
+                + "\"name\":\"a name\","
+                + "\"version\":\"3.2\","
+                + "\"subType\":\"rooty\","
+                + "\"url\":\"http://exolin.test/status?type=json&service=root%3Aa+name\","
                 + "\"status\":\"running\","
                 + "\"properties\":{\"something\":{\"value\":\"value of it\"}},"
                 + "\"startTime\":1234,"
