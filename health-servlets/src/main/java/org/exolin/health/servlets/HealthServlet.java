@@ -6,13 +6,15 @@
 package org.exolin.health.servlets;
 
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.exolin.health.servlets.html.HealthComponentWithParent;
 import org.exolin.health.servlets.html.HealthHTML;
 import org.exolin.health.servlets.json.HealthJSON;
 
@@ -58,6 +60,7 @@ public abstract class HealthServlet extends HttpServlet
         HealthComponent c;
         
         String service = request.getParameter("service");
+        String aggregate = request.getParameter("aggregate");
         if(service != null)
         {
             int p = service.indexOf(':');
@@ -77,10 +80,40 @@ public abstract class HealthServlet extends HttpServlet
                 visualizer.writeNotFound(url, type, name, request, response);
                 return;
             }
+            
+            visualizer.write(url, c, request, response);
+        }
+        else if(aggregate != null)
+        {
+            switch(aggregate)
+            {
+                case "status":
+                    Map<String, List<HealthComponent>> aggregated = aggregateByStatus(root);
+                    visualizer.showStatusAggregate(url, aggregated, request, response);
+                    break;
+                    
+                default:
+                    response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Unknown aggregate");
+            }
         }
         else
-            c = root;
+            visualizer.write(url, root, request, response);
+    }
+
+    private Map<String, List<HealthComponent>> aggregateByStatus(HealthComponent root)
+    {
+        List<HealthComponent> all = new ArrayList<>();
+        addSelfAndSubs(root, all);
         
-        visualizer.write(url, c, request, response);
+        return all.stream()
+                .collect(Collectors.groupingBy(HealthComponent::getStatus, Collectors.toList()));
+    }
+    
+    private static void addSelfAndSubs(HealthComponent component, List<HealthComponent> components)
+    {
+        components.add(component);
+        
+        List<HealthComponent> subComponents = component.getSubComponents();
+        subComponents.forEach(s -> addSelfAndSubs(s, components));
     }
 }

@@ -42,7 +42,7 @@ public class HealthHTML implements Visualizer
             out.println("<html>");
             out.println("<head>");
             out.println("<link rel=\"stylesheet\" href=\"https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css\" integrity=\"sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T\" crossorigin=\"anonymous\">");
-            out.println("<title>Status</title>");            
+            out.println("<title>Not found</title>");
             out.println("</head>");
             out.println("<body>");
             out.println("<div class=\"container\">");
@@ -57,7 +57,8 @@ public class HealthHTML implements Visualizer
     
     private void writeTitle(PrintWriter out, HealthComponent component)
     {
-        out.print("Status");
+        if(component.getType() == null && component.getName() == null)
+            out.print("Status");
 
         if(component.getType() != null)
             out.print(" "+component.getType());
@@ -157,8 +158,8 @@ public class HealthHTML implements Visualizer
             if(name != null)
             {
                 out.println("<tr>");
-                out.println("<td><a href=\""+linkBuilder.link(component.getType(), name)+"\">Name</a></td>");
-                out.println("<td>"+name+"</td>");
+                out.println("<td>Name</td>");
+                out.println("<td><a href=\""+linkBuilder.link(component.getType(), name)+"\">"+name+"</a></td>");
                 out.println("</tr>");
             }
         }
@@ -301,7 +302,7 @@ public class HealthHTML implements Visualizer
 
     private void writeMeta(PrintWriter out, HttpServletRequest request)
     {
-        out.write("<h2>health-check meta</h2>");
+        out.write("<h2>Metainformation</h2>");
         out.write("<table class=\"table\">");
 
         out.write("<tr><th colspan=\"2\">Servlet Context</hd></tr>");
@@ -320,8 +321,65 @@ public class HealthHTML implements Visualizer
         out.write("<tr><td>Local Name</td><td>" + request.getLocalName()+"</td></tr>");
         out.write("<tr><td>Local Port</td><td>" + request.getLocalPort()+"</td></tr>");
         
+        out.write("<tr><th colspan=\"2\">health-check meta</hd></tr>");
         out.write("<tr><td>health-servlets-version</td><td>" + Constants.VERSION+"</td></tr>");
 
         out.write("</table>");
+    }
+
+    @Override
+    public void showStatusAggregate(String url, Map<String, List<HealthComponent>> aggregated, HttpServletRequest request, HttpServletResponse response) throws IOException
+    {
+        try(PrintWriter out = response.getWriter())
+        {
+            response.setContentType("text/html;charset=UTF-8");
+        
+            out.println("<!DOCTYPE html>");
+            out.println("<html>");
+            out.println("<head>");
+            out.println("<link rel=\"stylesheet\" href=\"https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css\" integrity=\"sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T\" crossorigin=\"anonymous\">");
+            out.println("<title>Status Aggregation</title>");
+            
+            LinkBuilder linkBuilder = new LinkBuilder(url, false);
+            
+            out.println("<div class=\"container\">");
+            out.println("<h1>Status Aggregation</h1>");
+            
+            out.println("<table class=\"table\">");
+            
+            aggregated.forEach((status, components) -> {
+                out.print("<tr>");
+                out.print("<th>"+status+"</th>");
+                
+                out.print("<td>");
+                out.print("<ul>");
+                
+                components.forEach(component -> {
+                    out.print("<li>");
+                    
+                    String name = component.getName();
+                    
+                    if(name != null)
+                        out.print("<a href=\""+linkBuilder.link(component.getType(), name)+"\">");
+                    
+                    out.print(component.getType());
+                    
+                    if(name != null)
+                        out.print(" "+name+"</a>");
+                    
+                    out.print("</li>");
+                });
+                
+                out.print("</ul>");
+                out.print("</td>");
+                
+                out.print("</tr>");
+            });
+            
+            out.println("</table>");
+            out.println("</div>");
+            out.println("</body>");
+            out.println("</html>");
+        }
     }
 }
