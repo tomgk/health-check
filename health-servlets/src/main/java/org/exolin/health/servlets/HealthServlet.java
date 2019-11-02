@@ -14,7 +14,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import org.exolin.health.servlets.html.HealthComponentWithParent;
 import org.exolin.health.servlets.html.HealthHTML;
 import org.exolin.health.servlets.json.HealthJSON;
 
@@ -88,7 +87,7 @@ public abstract class HealthServlet extends HttpServlet
             switch(aggregate)
             {
                 case "status":
-                    Map<String, List<HealthComponent>> aggregated = aggregateByStatus(root);
+                    Map<Status, Map<String, List<HealthComponent>>> aggregated = aggregateByStatus(root);
                     visualizer.showStatusAggregate(url, aggregated, request, response);
                     break;
                     
@@ -100,13 +99,21 @@ public abstract class HealthServlet extends HttpServlet
             visualizer.write(url, root, request, response);
     }
 
-    private Map<String, List<HealthComponent>> aggregateByStatus(HealthComponent root)
+    private Map<Status, Map<String, List<HealthComponent>>> aggregateByStatus(HealthComponent root)
     {
         List<HealthComponent> all = new ArrayList<>();
         addSelfAndSubs(root, all);
         
         return all.stream()
-                .collect(Collectors.groupingBy(HealthComponent::getStatus, Collectors.toList()));
+                .collect(
+                        Collectors.groupingBy(
+                                HealthComponent::getStatus,
+                                Collectors.groupingBy(
+                                        this::getHealthComponentStatusOrEmpty,
+                                        Collectors.toList()
+                                )
+                        )
+                );
     }
     
     private static void addSelfAndSubs(HealthComponent component, List<HealthComponent> components)
@@ -115,5 +122,11 @@ public abstract class HealthServlet extends HttpServlet
         
         List<HealthComponent> subComponents = component.getSubComponents();
         subComponents.forEach(s -> addSelfAndSubs(s, components));
+    }
+    
+    private String getHealthComponentStatusOrEmpty(HealthComponent c)
+    {
+        String s = c.getSpecificStatus();
+        return s != null ? s : "";
     }
 }

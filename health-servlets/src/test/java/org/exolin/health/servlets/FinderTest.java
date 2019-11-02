@@ -32,6 +32,12 @@ public class FinderTest
         }
 
         @Override
+        public Status getStatus()
+        {
+            return Status.OK;
+        }
+        
+        @Override
         public String getName()
         {
             return name;

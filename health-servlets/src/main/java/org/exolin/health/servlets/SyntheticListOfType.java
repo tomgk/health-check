@@ -19,6 +19,12 @@ public class SyntheticListOfType implements HealthComponent
     }
 
     @Override
+    public Status getStatus()
+    {
+        return Status.OK;
+    }
+    
+    @Override
     public String getType()
     {
         return "List("+elementType+")";

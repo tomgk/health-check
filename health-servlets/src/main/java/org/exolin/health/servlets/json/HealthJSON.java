@@ -18,6 +18,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.exolin.health.servlets.HealthComponent;
 import org.exolin.health.servlets.LinkBuilder;
+import org.exolin.health.servlets.Status;
 import org.exolin.health.servlets.Visualizer;
 
 /**
@@ -56,17 +57,30 @@ public class HealthJSON implements Visualizer
     }
 
     @Override
-    public void showStatusAggregate(String url, Map<String, List<HealthComponent>> aggregated, HttpServletRequest request, HttpServletResponse response) throws IOException
+    public void showStatusAggregate(String url, Map<Status, Map<String, List<HealthComponent>>> aggregated, HttpServletRequest request, HttpServletResponse response) throws IOException
     {
         LinkBuilder linkBuilder = new LinkBuilder(url, true);
         
-        Map<String, List<HealthComponentShortInfo>> info = new LinkedHashMap<>();
+        Map<String, Map<String, List<HealthComponentShortInfo>>> shortInfoOfStatus = new LinkedHashMap<>();
         
-        for(Map.Entry<String, List<HealthComponent>> e: aggregated.entrySet())
+        for(Map.Entry<Status, Map<String, List<HealthComponent>>> ofStatus: aggregated.entrySet())
         {
-            info.put(e.getKey(), e.getValue().stream().map(c -> new HealthComponentShortInfo(c, linkBuilder)).collect(Collectors.toList()));
+            Map<String, List<HealthComponentShortInfo>> shortInfoOfSpecificStatus = new LinkedHashMap<>();
+            
+            for(Map.Entry<String, List<HealthComponent>> ofSpecificStatus: ofStatus.getValue().entrySet())
+            {
+                shortInfoOfSpecificStatus.put(
+                        ofSpecificStatus.getKey(),
+                        ofSpecificStatus.getValue()
+                                .stream()
+                                .map(c -> new HealthComponentShortInfo(c, linkBuilder))
+                                .collect(Collectors.toList())
+                );
+            }
+            
+            shortInfoOfStatus.put(ofStatus.getKey().name().toLowerCase(), shortInfoOfSpecificStatus);
         }
         
-        mapper.writeValue(response.getWriter(), info);
+        mapper.writeValue(response.getWriter(), shortInfoOfStatus);
     }
 }

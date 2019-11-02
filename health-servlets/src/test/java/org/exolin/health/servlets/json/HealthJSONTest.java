@@ -11,6 +11,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.exolin.health.servlets.HealthComponent;
+import org.exolin.health.servlets.Status;
 import org.exolin.health.servlets.Value;
 import static org.junit.Assert.*;
 import org.junit.Test;
@@ -30,6 +31,12 @@ public class HealthJSONTest
         {
             return "root";
         }
+
+        @Override
+        public Status getStatus()
+        {
+            return Status.OK;
+        }
     }
     
     @Test
@@ -38,7 +45,7 @@ public class HealthJSONTest
         StringWriter out = new StringWriter();
         HealthJSON.write(URL, out, new HealthComponentRoot());
         
-        assertEquals("{\"type\":\"root\"}", out.toString());
+        assertEquals("{\"type\":\"root\",\"status\":\"ok\"}", out.toString());
     }
     
     static class HealthComponentRoot2 implements HealthComponent
@@ -68,7 +75,13 @@ public class HealthJSONTest
         }
 
         @Override
-        public String getStatus()
+        public Status getStatus()
+        {
+            return Status.OK;
+        }
+
+        @Override
+        public String getSpecificStatus()
         {
             return "running";
         }
@@ -94,7 +107,20 @@ public class HealthJSONTest
         @Override
         public List<HealthComponent> getSubComponents()
         {
-            return Arrays.asList(() -> "sub-thingy");
+            return Arrays.asList(new HealthComponent()
+            {
+                @Override
+                public String getType()
+                {
+                    return "sub-thingy";
+                }
+
+                @Override
+                public Status getStatus()
+                {
+                    return Status.OK;
+                }
+            });
         }
 
         @Override
@@ -116,11 +142,12 @@ public class HealthJSONTest
                 + "\"version\":\"3.2\","
                 + "\"subType\":\"rooty\","
                 + "\"url\":\"http://exolin.test/status?type=json&service=root%3Aa+name\","
-                + "\"status\":\"running\","
+                + "\"status\":\"ok\","
+                + "\"specificStatus\":\"running\","
                 + "\"properties\":{\"something\":{\"value\":\"value of it\"}},"
                 + "\"startTime\":1234,"
                 + "\"startDuration\":5678,"
-                + "\"subComponents\":[{\"type\":\"sub-thingy\"}"
+                + "\"subComponents\":[{\"type\":\"sub-thingy\",\"status\":\"ok\"}"
                 + "]}", out.toString());
     }
 }

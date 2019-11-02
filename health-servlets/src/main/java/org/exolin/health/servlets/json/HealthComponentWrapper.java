@@ -26,6 +26,7 @@ import org.exolin.health.servlets.Value;
     "subType",
     "url",
     "status",
+    "specificStatus",
     "properties",
     "startTime",
     "startDuration",
@@ -76,7 +77,12 @@ public class HealthComponentWrapper
 
     public String getStatus()
     {
-        return component.getStatus();
+        return component.getStatus().name().toLowerCase();
+    }
+
+    public String getSpecificStatus()
+    {
+        return component.getSpecificStatus();
     }
 
     public Long getStartTime()

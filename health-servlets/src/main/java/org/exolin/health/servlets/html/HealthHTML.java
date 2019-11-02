@@ -21,6 +21,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.text.StringEscapeUtils;
 import org.exolin.health.servlets.Constants;
 import org.exolin.health.servlets.HealthComponent;
+import org.exolin.health.servlets.Status;
 import org.exolin.health.servlets.Value;
 import org.exolin.health.servlets.Visualizer;
 
@@ -170,7 +171,8 @@ public class HealthHTML implements Visualizer
         writeRow(out, "Start time", Formatter.formatTimestamp(component.getStartTime()));
         writeRow(out, "Startup time", Formatter.formatDuration(component.getStartDuration())+" ms");
 
-        writeRow(out, "Status", component.getStatus());
+        writeRow(out, "Status (general)", component.getStatus().name());
+        writeRow(out, "Status (specific)", component.getSpecificStatus());
 
         out.println("<tr><td>Startup Exception</td><td>");
 
@@ -328,7 +330,7 @@ public class HealthHTML implements Visualizer
     }
 
     @Override
-    public void showStatusAggregate(String url, Map<String, List<HealthComponent>> aggregated, HttpServletRequest request, HttpServletResponse response) throws IOException
+    public void showStatusAggregate(String url, Map<Status, Map<String, List<HealthComponent>>> aggregated, HttpServletRequest request, HttpServletResponse response) throws IOException
     {
         try(PrintWriter out = response.getWriter())
         {
@@ -347,33 +349,35 @@ public class HealthHTML implements Visualizer
             
             out.println("<table class=\"table\">");
             
-            aggregated.forEach((status, components) -> {
-                out.print("<tr>");
-                out.print("<th>"+status+"</th>");
-                
-                out.print("<td>");
-                out.print("<ul>");
-                
-                components.forEach(component -> {
-                    out.print("<li>");
-                    
-                    String name = component.getName();
-                    
-                    if(name != null)
-                        out.print("<a href=\""+linkBuilder.link(component.getType(), name)+"\">");
-                    
-                    out.print(component.getType());
-                    
-                    if(name != null)
-                        out.print(" "+name+"</a>");
-                    
-                    out.print("</li>");
+            aggregated.forEach((status, componentsBySpecificStatus) -> {
+                componentsBySpecificStatus.forEach((specificStatus, components) -> {
+                    out.print("<tr>");
+                    out.print("<th>"+status+(!specificStatus.isEmpty() ? ":"+specificStatus : "")+"</th>");
+
+                    out.print("<td>");
+                    out.print("<ul>");
+
+                    components.forEach(component -> {
+                        out.print("<li>");
+
+                        String name = component.getName();
+
+                        if(name != null)
+                            out.print("<a href=\""+linkBuilder.link(component.getType(), name)+"\">");
+
+                        out.print(component.getType());
+
+                        if(name != null)
+                            out.print(" "+name+"</a>");
+
+                        out.print("</li>");
+                    });
+
+                    out.print("</ul>");
+                    out.print("</td>");
+
+                    out.print("</tr>");
                 });
-                
-                out.print("</ul>");
-                out.print("</td>");
-                
-                out.print("</tr>");
             });
             
             out.println("</table>");

@@ -16,5 +16,5 @@ public interface Visualizer
     
     public void writeNotFound(String url, String type, String name, HttpServletRequest request, HttpServletResponse response) throws IOException;
 
-    public void showStatusAggregate(String url, Map<String, List<HealthComponent>> aggregated, HttpServletRequest request, HttpServletResponse response) throws IOException;
+    public void showStatusAggregate(String url, Map<Status, Map<String, List<HealthComponent>>> aggregated, HttpServletRequest request, HttpServletResponse response) throws IOException;
 }

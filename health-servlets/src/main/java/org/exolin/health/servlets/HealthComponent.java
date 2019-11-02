@@ -48,7 +48,12 @@ public interface HealthComponent
     /**
      * @return der Status
      */
-    default String getStatus()
+    Status getStatus();
+    
+    /**
+     * @return der spezifische Status
+     */
+    default String getSpecificStatus()
     {
         return null;
     }
