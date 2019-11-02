@@ -15,9 +15,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.servlet.ServletRegistration;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.text.StringEscapeUtils;
+import org.exolin.health.servlets.Constants;
 import org.exolin.health.servlets.HealthComponent;
 import org.exolin.health.servlets.Value;
 import org.exolin.health.servlets.Visualizer;
@@ -46,6 +48,7 @@ public class HealthHTML implements Visualizer
             out.println("<div class=\"container\">");
             out.println("<h1>Not found</h1>");
             out.println("<p>The specific service was not found</p>");
+            writeMeta(out, request);
             out.println("</div>");
             out.println("</body>");
             out.println("</html>");
@@ -85,12 +88,6 @@ public class HealthHTML implements Visualizer
             out.print("<h1>");
             writeTitle(out, component);
             out.println("</h1>");
-            
-            out.write("<table class=\"table\">");
-
-            out.write("<tr><td>ContextPath</td><td>" + request.getContextPath()+"</td></tr>");
-
-            out.write("</table>");
             
             LinkBuilder linkBuilder = new LinkBuilder(url, false);
             
@@ -134,7 +131,10 @@ public class HealthHTML implements Visualizer
                 }
             }
             
+            writeMeta(out, request);
+            
             out.println("</div>");
+            
             out.println("</body>");
             out.println("</html>");
         }
@@ -297,5 +297,31 @@ public class HealthHTML implements Visualizer
             return "@"+System.identityHashCode(component);
         
         return String.join(" ", parts);
+    }
+
+    private void writeMeta(PrintWriter out, HttpServletRequest request)
+    {
+        out.write("<h2>health-check meta</h2>");
+        out.write("<table class=\"table\">");
+
+        out.write("<tr><th colspan=\"2\">Servlet Context</hd></tr>");
+        out.write("<tr><td>Servlet-ContextPath</td><td>" + request.getServletContext().getContextPath()+"</td></tr>");
+        
+        out.write("<tr><th colspan=\"2\">Servlets</hd></tr>");
+        for(Map.Entry<String, ? extends ServletRegistration> a: request.getServletContext().getServletRegistrations().entrySet())
+        {
+            out.write("<tr><td>"+a.getKey()+"</td><td>"+String.join(",", a.getValue().getMappings())+"</td></tr>");
+        }
+        
+        out.write("<tr><th colspan=\"2\">Request</hd></tr>");
+        
+        out.write("<tr><td>Request-ContextPath</td><td>" + request.getContextPath()+"</td></tr>");
+        out.write("<tr><td>Local Addr</td><td>" + request.getLocalAddr()+"</td></tr>");
+        out.write("<tr><td>Local Name</td><td>" + request.getLocalName()+"</td></tr>");
+        out.write("<tr><td>Local Port</td><td>" + request.getLocalPort()+"</td></tr>");
+        
+        out.write("<tr><td>health-servlets-version</td><td>" + Constants.VERSION+"</td></tr>");
+
+        out.write("</table>");
     }
 }
